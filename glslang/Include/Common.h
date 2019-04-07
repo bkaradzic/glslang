@@ -40,8 +40,6 @@
 
 #if defined(__ANDROID__) || (defined(_MSC_VER) && _MSC_VER < 1700)
 #include <sstream>
-
-#if defined(__ANDROID__)
 namespace std {
 template<typename T>
 std::string to_string(const T& val) {
