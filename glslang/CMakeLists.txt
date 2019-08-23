@@ -7,6 +7,7 @@ else(WIN32)
 endif(WIN32)
 
 set(SOURCES
+    MachineIndependent/glslang.m4
     MachineIndependent/glslang.y
     MachineIndependent/glslang_tab.cpp
     MachineIndependent/attribute.cpp
@@ -71,15 +72,6 @@ set(HEADERS
     MachineIndependent/preprocessor/PpContext.h
     MachineIndependent/preprocessor/PpTokens.h)
 
-# This might be useful for making grammar changes:
-#
-# find_package(BISON)
-# add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/MachineIndependent/glslang_tab.cpp ${CMAKE_CURRENT_SOURCE_DIR}/MachineIndependent/glslang_tab.cpp.h
-#                    COMMAND ${BISON_EXECUTABLE} --defines=${CMAKE_CURRENT_SOURCE_DIR}/MachineIndependent/glslang_tab.cpp.h -t ${CMAKE_CURRENT_SOURCE_DIR}/MachineIndependent/glslang.y -o ${CMAKE_CURRENT_SOURCE_DIR}/MachineIndependent/glslang_tab.cpp
-#                    MAIN_DEPENDENCY MachineIndependent/glslang.y
-#                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-# set(BISON_GLSLParser_OUTPUT_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/MachineIndependent/glslang_tab.cpp)
-
 glslang_pch(SOURCES MachineIndependent/pch.cpp)
 
 add_library(glslang ${LIB_TYPE} ${BISON_GLSLParser_OUTPUT_SOURCE} ${SOURCES} ${HEADERS})
@@ -131,6 +123,7 @@ if(ENABLE_GLSLANG_WEB)
         set_target_properties(glslang.js PROPERTIES
           OUTPUT_NAME "glslang"
           SUFFIX ".js"
-          LINK_FLAGS "--bind")
+          LINK_FLAGS "--bind -s EXPORT_NAME=\"glslangModule\"")
+        em_link_pre_js(glslang.js ${CMAKE_CURRENT_SOURCE_DIR}/glslang.pre.js)
     endif(EMSCRIPTEN)
 endif(ENABLE_GLSLANG_WEB)
