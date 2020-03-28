@@ -105,6 +105,7 @@ TEST_P(CompileVulkanToDebugSpirvTest, FromFile)
                             "/baseResults/", false, true);
 }
 
+
 TEST_P(CompileVulkan1_1ToSpirvTest, FromFile)
 {
     loadFileCompileAndCheck(GlobalTestSettings.testRoot, GetParam(),
@@ -229,6 +230,15 @@ INSTANTIATE_TEST_CASE_P(
         "spv.while-continue-break.vert",
         "spv.while-simple.vert",
         // vulkan-specific tests
+        "rayQuery.rgen",
+        "rayQuery-decls.rgen",
+        "rayQuery-no-cse.rgen",
+        "rayQuery-initialize.rgen",
+        "rayQuery-allOps.rgen",
+        "rayQuery-allOps.Error.rgen",
+        "rayQuery-committed.Error.rgen",
+        "rayQuery-allOps.comp",
+        "rayQuery-allOps.frag",
         "spv.set.vert",
         "spv.double.comp",
         "spv.100ops.frag",
