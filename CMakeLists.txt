@@ -1,3 +1,36 @@
+# Copyright (C) 2020 The Khronos Group Inc.
+#
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#    Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+#
+#    Redistributions in binary form must reproduce the above
+#    copyright notice, this list of conditions and the following
+#    disclaimer in the documentation and/or other materials provided
+#    with the distribution.
+#
+#    Neither the name of The Khronos Group Inc. nor the names of its
+#    contributors may be used to endorse or promote products derived
+#    from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
 # increase to 3.1 once all major distributions
 # include a version of CMake >= 3.1
 cmake_minimum_required(VERSION 2.8.12)
@@ -119,6 +152,9 @@ if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
     add_compile_options(-Wall -Wmaybe-uninitialized -Wuninitialized -Wunused -Wunused-local-typedefs
                         -Wunused-parameter -Wunused-value  -Wunused-variable -Wunused-but-set-parameter -Wunused-but-set-variable -fno-exceptions)
     add_compile_options(-Wno-reorder)  # disable this from -Wall, since it happens all over.
+    if(BUILD_SHARED_LIBS)
+        add_compile_options(-fPIC)
+    endif()
     if(NOT ENABLE_RTTI)
         add_compile_options(-fno-rtti)
     endif()
@@ -128,16 +164,25 @@ if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
     if(NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS "9.0.0")
         add_compile_options(-Werror=deprecated-copy)
     endif()
+
+    # Error if there's symbols that are not found at link time.
+    add_link_options("-Wl,--no-undefined")
 elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang" AND NOT MSVC)
     add_compile_options(-Wall -Wuninitialized -Wunused -Wunused-local-typedefs
                         -Wunused-parameter -Wunused-value  -Wunused-variable)
     add_compile_options(-Wno-reorder)  # disable this from -Wall, since it happens all over.
+    if(BUILD_SHARED_LIBS)
+        add_compile_options(-fPIC)
+    endif()
     if(NOT ENABLE_RTTI)
         add_compile_options(-fno-rtti)
     endif()
     if(NOT ENABLE_EXCEPTIONS)
         add_compile_options(-fno-exceptions)
     endif()
+
+    # Error if there's symbols that are not found at link time.
+    add_link_options("-Wl,-undefined,error")
 elseif(MSVC)
     if(NOT ENABLE_RTTI)
         string(FIND "${CMAKE_CXX_FLAGS}" "/GR" MSVC_HAS_GR)
@@ -192,6 +237,21 @@ if(BUILD_EXTERNAL AND IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/External)
 	# We depend on these for later projects, so they should come first.
 	add_subdirectory(External)
 endif()
+
+# glslang_only_export_explicit_symbols() makes the symbol visibility hidden by
+# default for <target> when building shared libraries, and sets the
+# GLSLANG_IS_SHARED_LIBRARY define, and GLSLANG_EXPORTING to 1 when specifically
+# building <target>.
+function(glslang_only_export_explicit_symbols target)
+    if(BUILD_SHARED_LIBS)
+        target_compile_definitions(${target} PUBLIC "GLSLANG_IS_SHARED_LIBRARY=1")
+        if(WIN32)
+            target_compile_definitions(${target} PRIVATE "GLSLANG_EXPORTING=1")
+        else()
+            target_compile_options(${target} PRIVATE "-fvisibility=hidden")
+        endif()
+    endif()
+endfunction()
 
 if(NOT TARGET SPIRV-Tools-opt)
     set(ENABLE_OPT OFF)
