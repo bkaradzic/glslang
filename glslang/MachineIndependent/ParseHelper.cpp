@@ -5602,14 +5602,7 @@ void TParseContext::setLayoutQualifier(const TSourceLoc& loc, TPublicType& publi
         if (! IsPow2(value))
             error(loc, "must be a power of 2", "buffer_reference_align", "");
         else
-#ifdef __ANDROID__
-            // Android NDK r15c tageting ABI 15 doesn't have full support for C++11
-            // (no std::exp2/log2). ::exp2 is available from C99 but ::log2 isn't
-            // available up until ABI 18 so we use the mathematical equivalent form
-            publicType.qualifier.layoutBufferReferenceAlign = (unsigned int)(std::log(value) / std::log(2.0));
-#else
-            publicType.qualifier.layoutBufferReferenceAlign = (unsigned int)std::log2(value);
-#endif
+            publicType.qualifier.layoutBufferReferenceAlign = IntLog2(value);
         if (nonLiteral)
             error(loc, "needs a literal integer", "buffer_reference_align", "");
         return;
@@ -6431,8 +6424,11 @@ const TFunction* TParseContext::findFunction(const TSourceLoc& loc, const TFunct
                                 extensionTurnedOn(E_GL_EXT_shader_explicit_arithmetic_types_float64);
 
     if (isEsProfile())
-        function = (extensionTurnedOn(E_GL_EXT_shader_implicit_conversions) && version >= 310) ?
-                    findFunction120(loc, call, builtIn) : findFunctionExact(loc, call, builtIn);
+        function = (explicitTypesEnabled && version >= 310)
+                   ? findFunctionExplicitTypes(loc, call, builtIn)
+                   : ((extensionTurnedOn(E_GL_EXT_shader_implicit_conversions) && version >= 310)
+                      ? findFunction120(loc, call, builtIn)
+                      : findFunctionExact(loc, call, builtIn));
     else if (version < 120)
         function = findFunctionExact(loc, call, builtIn);
     else if (version < 400)
